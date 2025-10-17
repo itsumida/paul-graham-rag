@@ -28,6 +28,14 @@ def run_command(cmd, description):
         return False
 
 
+def check_file_exists(filepath, description):
+    """Check if a file exists and return True if it does."""
+    if Path(filepath).exists():
+        print(f"✅ {description} already exists, skipping...")
+        return True
+    return False
+
+
 def main():
     """Run the complete demo pipeline."""
     print("🚀 Paul Graham Essays RAG System Demo")
@@ -38,26 +46,29 @@ def main():
         print("❌ Please run this script from the project root directory")
         sys.exit(1)
     
-    # Step 1: Scrape essays
-    if not run_command(
-        "python scrape_pg_essays.py --out pg_essays_json --limit 5",
-        "Scraping first 5 essays (for demo)"
-    ):
-        return
+    # Step 1: Scrape essays (skip if already done)
+    if not check_file_exists("pg_essays_json", "Essay JSON files"):
+        if not run_command(
+            "python scrape_pg_essays.py --out pg_essays_json --limit 5",
+            "Scraping first 5 essays (for demo)"
+        ):
+            return
     
-    # Step 2: Chunk essays
-    if not run_command(
-        "python chunk_pg_essays.py --input pg_essays_json --out chunks.jsonl --chunk_size 200 --overlap 50",
-        "Chunking essays into smaller pieces"
-    ):
-        return
+    # Step 2: Chunk essays (skip if already done)
+    if not check_file_exists("chunks.jsonl", "Chunked essays file"):
+        if not run_command(
+            "python chunk_pg_essays.py --input pg_essays_json --out chunks.jsonl --chunk_size 200 --overlap 50",
+            "Chunking essays into smaller pieces"
+        ):
+            return
     
-    # Step 3: Build FAISS index
-    if not run_command(
-        "python build_faiss_index.py --chunks chunks.jsonl --out index_bge --batch_size 32",
-        "Building FAISS index with BGE embeddings"
-    ):
-        return
+    # Step 3: Build FAISS index (skip if already done)
+    if not check_file_exists("index_bge/index.faiss", "FAISS index"):
+        if not run_command(
+            "python build_faiss_index.py --chunks chunks.jsonl --out index_bge --batch_size 32",
+            "Building FAISS index with BGE embeddings"
+        ):
+            return
     
     # Step 4: Test queries
     print("\n🔍 Testing queries...")
