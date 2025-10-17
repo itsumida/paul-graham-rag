@@ -4,9 +4,13 @@ import os
 from typing import List, Dict, Any
 import requests
 from flask import Flask, render_template, request, jsonify
+from dotenv import load_dotenv
 
 from embedding_utils import BGEEmbedder
 from query_compare import cohere_rerank, simple_local_rerank, load_index, read_jsonl
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
