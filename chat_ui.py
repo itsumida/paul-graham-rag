@@ -130,7 +130,7 @@ def generate_answer(query: str, context_chunks: List[dict], openai_api_key: str 
         text = chunk['text'][:400] + "..." if len(chunk['text']) > 400 else chunk['text']
         context_text += f"[{i+1}] {text}\n\n"
         sources.append({
-            "number": i + 1,
+            "number": i + 1,  # Renumber sources to match answer references
             "title": chunk.get("title", "Unknown"),
             "url": chunk.get("url", ""),
             "score": chunk.get("cohere_score", chunk.get("local_score", chunk.get("faiss_score", 0)))
@@ -159,7 +159,8 @@ Relevant Excerpts:
 Instructions:
 - Write a natural, conversational answer (2-3 paragraphs)
 - Synthesize the information from the excerpts into coherent insights
-- Reference sources as [1], [2], [3] when making specific points
+- Reference sources as [1], [2], [3] in sequential order when making specific points
+- Use [1] for the first excerpt, [2] for the second, [3] for the third
 - Write in Paul Graham's clear, direct style
 - Make it sound like you're explaining Paul Graham's ideas, not just listing excerpts
 - If the excerpts don't fully answer the question, acknowledge this
