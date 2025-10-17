@@ -4,15 +4,19 @@ A complete Retrieval-Augmented Generation (RAG) system for Paul Graham's essays 
 
 ## 🚀 Quick Start
 
-Run the complete demo pipeline:
+**Option 1: Use pre-built data (fastest)**
+```bash
+python web_ui.py --index_dir index_bge --chunks chunks.jsonl --port 5000
+```
+Then open http://localhost:5000 in your browser.
 
+**Option 2: Run complete demo pipeline**
 ```bash
 python demo.py
 ```
-
 This will:
 1. Scrape 5 essays from paulgraham.com
-2. Chunk them into smaller pieces
+2. Chunk them into smaller pieces  
 3. Build a FAISS index with BGE embeddings
 4. Test some queries
 5. Launch the web interface at http://localhost:5000
@@ -66,14 +70,14 @@ python build_faiss_index.py --chunks chunks.jsonl --out index_bge
 
 ### 4. Query the System
 
+**Web Interface (Recommended):**
+```bash
+python web_ui.py --index_dir index_bge --chunks chunks.jsonl --port 5000
+```
+
 **Command Line:**
 ```bash
 python query_compare.py --index_dir index_bge --top_k 5 "startup ideas"
-```
-
-**Web Interface:**
-```bash
-python web_ui.py --index_dir index_bge --chunks chunks.jsonl --port 5000
 ```
 
 ## 🎯 Multi-Stage Reranking
