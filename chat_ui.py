@@ -186,28 +186,43 @@ Answer:"""
                 timeout=30
             )
             
-            if response.status_code == 200:
-                result = response.json()
-                answer = result["choices"][0]["message"]["content"].strip()
+        if response.status_code == 200:
+            result = response.json()
+            answer = result["choices"][0]["message"]["content"].strip()
+            
+            # Check if answer contains source references, if not, limit sources to only referenced ones
+            import re
+            referenced_numbers = re.findall(r'\[(\d+)\]', answer)
+            if referenced_numbers:
+                # Only keep sources that are referenced in the answer
+                referenced_sources = []
+                for num in referenced_numbers:
+                    num = int(num)
+                    if 1 <= num <= len(sources):
+                        referenced_sources.append(sources[num-1])
+                sources = referenced_sources
             else:
-                # Fallback to template answer
-                key_insights = []
-                for i, chunk in enumerate(context_chunks):
-                    text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
-                    sentences = text.split('.')
-                    if len(sentences) > 1:
-                        main_point = sentences[0].strip()
-                        if len(main_point) > 20:
-                            key_insights.append(f"• {main_point} [{i+1}]")
-                
-                if key_insights:
-                    answer = f"""Based on Paul Graham's essays about "{query}":
+                # No source references in answer, show no sources
+                sources = []
+        else:
+            # Fallback to template answer
+            key_insights = []
+            for i, chunk in enumerate(context_chunks):
+                text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
+                sentences = text.split('.')
+                if len(sentences) > 1:
+                    main_point = sentences[0].strip()
+                    if len(main_point) > 20:
+                        key_insights.append(f"• {main_point} [{i+1}]")
+            
+            if key_insights:
+                answer = f"""Based on Paul Graham's essays about "{query}":
 
 {chr(10).join(key_insights)}
 
 These insights come from Paul Graham's writings. Click the numbered references to read the full essays."""
-                else:
-                    answer = f"""I found some relevant content about "{query}" in Paul Graham's essays, but the excerpts are quite brief. 
+            else:
+                answer = f"""I found some relevant content about "{query}" in Paul Graham's essays, but the excerpts are quite brief. 
 
 **Sources:** {', '.join([f'[{s["number"]}]({s["url"]})' for s in sources[:3]])}"""
                 
