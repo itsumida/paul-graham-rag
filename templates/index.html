@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paul Graham Essays RAG</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .search-form {
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        input[type="text"], input[type="password"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .results {
+            margin-top: 30px;
+        }
+        .result-item {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background-color: #f8f9fa;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        .result-url {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .result-url:hover {
+            text-decoration: underline;
+        }
+        .scores {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .score {
+            background-color: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .score.faiss {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .score.cohere {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .score.local {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .result-text {
+            color: #666;
+            line-height: 1.6;
+            margin-top: 10px;
+        }
+        .result-text::before {
+            content: "📄 ";
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Paul Graham Essays RAG</h1>
+        
+        <form class="search-form" id="searchForm">
+            <div class="form-group">
+                <label for="query">Ask a question about Paul Graham's essays:</label>
+                <input type="text" id="query" name="query" placeholder="e.g., How to get startup ideas?" required>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cohere_api_key">Cohere API Key (optional, for reranking):</label>
+                    <input type="password" id="cohere_api_key" name="cohere_api_key" placeholder="sk-...">
+                </div>
+                <div class="form-group">
+                    <label for="top_k">Number of results:</label>
+                    <input type="number" id="top_k" name="top_k" value="5" min="1" max="20">
+                </div>
+            </div>
+            
+            <button type="submit" id="searchBtn">Search</button>
+        </form>
+        
+        <div id="loading" class="loading" style="display: none;">
+            🔄 Searching and reranking...
+        </div>
+        
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('searchForm');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
+        const searchBtn = document.getElementById('searchBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = document.getElementById('query').value.trim();
+            const cohereApiKey = document.getElementById('cohere_api_key').value.trim();
+            const topK = parseInt(document.getElementById('top_k').value);
+            
+            if (!query) {
+                showError('Please enter a query');
+                return;
+            }
+            
+            // Show loading state
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            results.innerHTML = '';
+            searchBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        cohere_api_key: cohereApiKey,
+                        faiss_k: 30,
+                        top_k: topK
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Search failed');
+                }
+                
+                displayResults(data.results, cohereApiKey);
+                
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.style.display = 'none';
+                searchBtn.disabled = false;
+            }
+        });
+        
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+        
+        function displayResults(results, hasCohereKey) {
+            if (results.length === 0) {
+                document.getElementById('results').innerHTML = '<p>No results found.</p>';
+                return;
+            }
+            
+            const html = results.map((result, index) => {
+                const scores = [];
+                if (result.faiss_score !== undefined) {
+                    scores.push(`<span class="score faiss">FAISS: ${result.faiss_score.toFixed(3)}</span>`);
+                }
+                if (result.local_score !== undefined) {
+                    scores.push(`<span class="score local">Local: ${result.local_score.toFixed(3)}</span>`);
+                }
+                if (result.cohere_score !== undefined) {
+                    scores.push(`<span class="score cohere">Cohere: ${result.cohere_score.toFixed(3)}</span>`);
+                }
+                
+                return `
+                    <div class="result-item">
+                        <div class="result-header">
+                            <h3 class="result-title">${index + 1}. ${escapeHtml(result.title || 'Untitled')}</h3>
+                            <a href="${result.url || '#'}" class="result-url" target="_blank">🔗 View Essay</a>
+                        </div>
+                        <div class="scores">
+                            ${scores.join('')}
+                        </div>
+                        <div class="result-text">${escapeHtml(result.text || '').substring(0, 500)}${result.text && result.text.length > 500 ? '...' : ''}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('results').innerHTML = html;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
