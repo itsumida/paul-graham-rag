@@ -72,6 +72,7 @@ def search_and_rerank(query: str, faiss_k: int = 30, top_k: int = 5, cohere_api_
     
     # If no Cohere API key, return results with local reranker (if used)
     if not cohere_api_key:
+        print("DEBUG: No Cohere API key, using local reranker only")
         if use_local_rerank and local_reranked:
             # Return local reranked results
             results = []
@@ -84,6 +85,7 @@ def search_and_rerank(query: str, faiss_k: int = 30, top_k: int = 5, cohere_api_
             return candidates[:top_k]
     
     # Apply Cohere reranker on top of local reranker
+    print("DEBUG: Using Cohere reranker")
     try:
         cohere_reranked = cohere_rerank(query, candidates, api_key=cohere_api_key, top_n=top_k)
         
@@ -270,8 +272,14 @@ def chat():
     openai_api_key = data.get('openai_api_key', '').strip() or DEFAULT_OPENAI_API_KEY
     
     try:
-        # Retrieve relevant chunks
+        # Retrieve relevant chunks with reranking
         chunks = search_and_rerank(message, faiss_k=faiss_k, top_k=top_k, cohere_api_key=cohere_api_key, use_local_rerank=True)
+        
+        # Debug: Print reranking status
+        print(f"DEBUG: Cohere API key available: {bool(cohere_api_key)}")
+        if cohere_api_key:
+            print(f"DEBUG: Cohere key starts with: {cohere_api_key[:10]}...")
+        print(f"DEBUG: Retrieved {len(chunks)} chunks for reranking")
         
         # Generate answer
         answer, sources = generate_answer(message, chunks, openai_api_key=openai_api_key)
