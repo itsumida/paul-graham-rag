@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paul Graham Essays Chat</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .header p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .message {
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+        
+        .message.user {
+            align-self: flex-end;
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .message.assistant {
+            align-self: flex-start;
+            background-color: #f1f3f4;
+            color: #333;
+            border: 1px solid #e9ecef;
+        }
+        
+        .sources {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .sources h4 {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .source-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .source-link {
+            display: inline-block;
+            padding: 4px 12px;
+            background-color: #e9ecef;
+            color: #495057;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        .source-link:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .inline-source-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 2px 4px;
+            border-radius: 4px;
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        
+        .inline-source-link:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            background: white;
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .input-row input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .input-row input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        
+        .input-row label {
+            font-size: 12px;
+            color: #666;
+            min-width: 80px;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 60px;
+            max-height: 120px;
+            font-family: inherit;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .loading::before {
+            content: "🤔";
+            animation: thinking 1.5s infinite;
+        }
+        
+        @keyframes thinking {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .welcome {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin: 40px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💬 Paul Graham Essays Chat</h1>
+        <p>Ask questions about Paul Graham's ideas and get answers with source citations</p>
+    </div>
+    
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <div class="welcome">
+                👋 Ask me anything about Paul Graham's essays! I'll search through his writings and provide answers with source links.
+                <br><br>
+                Try: "How do I get startup ideas?" or "What makes good writing?"
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <div class="input-wrapper">
+                <div class="input-row">
+                    <label>Cohere API:</label>
+                    <input type="password" id="cohereApiKey" placeholder="sk-... (optional, for better reranking)" value="">
+                </div>
+                <div class="input-row">
+                    <label>OpenAI API:</label>
+                    <input type="password" id="openaiApiKey" placeholder="sk-... (optional, for better answers)" value="">
+                </div>
+                <div class="input-row">
+                    <label>Results:</label>
+                    <input type="number" id="topK" value="5" min="1" max="10" style="width: 80px;">
+                </div>
+            </div>
+            
+            <div class="input-container">
+                <textarea id="messageInput" placeholder="Ask a question about Paul Graham's essays..." rows="2"></textarea>
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesContainer = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const cohereApiKey = document.getElementById('cohereApiKey');
+        const openaiApiKey = document.getElementById('openaiApiKey');
+        const topK = document.getElementById('topK');
+
+        function addMessage(content, isUser = false, sources = []) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            let messageContent = content;
+            
+            // Convert markdown-style links to HTML links
+            messageContent = messageContent.replace(/\[(\d+)\]\(([^)]+)\)/g, 
+                '<a href="$2" target="_blank" class="inline-source-link">[$1]</a>');
+            
+            if (!isUser && sources.length > 0) {
+                messageContent += `
+                    <div class="sources">
+                        <h4>📚 Sources:</h4>
+                        <div class="source-list">
+                            ${sources.map(source => 
+                                `<a href="${source.url}" target="_blank" class="source-link">[${source.number}] ${source.title}</a>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            messageDiv.innerHTML = messageContent;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addLoadingMessage() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant loading';
+            loadingDiv.id = 'loadingMessage';
+            loadingDiv.textContent = 'Searching through Paul Graham\'s essays...';
+            messagesContainer.appendChild(loadingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function removeLoadingMessage() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            if (loadingMessage) {
+                loadingMessage.remove();
+            }
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, true);
+            messageInput.value = '';
+            
+            // Add loading message
+            addLoadingMessage();
+            
+            // Disable send button
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        cohere_api_key: cohereApiKey.value.trim(),
+                        openai_api_key: openaiApiKey.value.trim(),
+                        top_k: parseInt(topK.value),
+                        faiss_k: 30
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Chat failed');
+                }
+
+                // Remove loading message
+                removeLoadingMessage();
+                
+                // Add assistant response
+                addMessage(data.answer, false, data.sources);
+
+            } catch (error) {
+                removeLoadingMessage();
+                addMessage(`Sorry, I encountered an error: ${error.message}`, false);
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send';
+            }
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    </script>
+</body>
+</html>
