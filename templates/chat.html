@@ -110,6 +110,21 @@
             color: white;
         }
         
+        .source-item {
+            margin-bottom: 8px;
+        }
+        
+        .chunk-preview {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+            font-style: italic;
+        }
+        
         .inline-source-link {
             color: #007bff;
             text-decoration: none;
@@ -296,7 +311,10 @@
                         <h4>📚 Sources:</h4>
                         <div class="source-list">
                             ${sources.map(source => 
-                                `<a href="${source.url}" target="_blank" class="source-link">[${source.number}] ${source.title}</a>`
+                                `<div class="source-item">
+                                    <a href="${source.url}" target="_blank" class="source-link">[${source.number}] ${source.title}</a>
+                                    <div class="chunk-preview">${source.chunk_text || ''}</div>
+                                </div>`
                             ).join('')}
                         </div>
                     </div>

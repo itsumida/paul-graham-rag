@@ -129,10 +129,18 @@ def generate_answer(query: str, context_chunks: List[dict], openai_api_key: str 
         # Truncate long chunks for better context
         text = chunk['text'][:400] + "..." if len(chunk['text']) > 400 else chunk['text']
         context_text += f"[{i+1}] {text}\n\n"
+        # Create chunk-specific link
+        chunk_id = chunk.get("chunk_id", f"chunk_{i+1}")
+        essay_url = chunk.get("url", "")
+        
+        # Create a link that includes the chunk ID as a fragment
+        chunk_url = f"{essay_url}#{chunk_id}" if essay_url else ""
+        
         sources.append({
             "number": i + 1,  # Renumber sources to match answer references
             "title": chunk.get("title", "Unknown"),
-            "url": chunk.get("url", ""),
+            "url": chunk_url,
+            "chunk_text": chunk['text'][:200] + "..." if len(chunk['text']) > 200 else chunk['text'],
             "score": chunk.get("cohere_score", chunk.get("local_score", chunk.get("faiss_score", 0)))
         })
     
