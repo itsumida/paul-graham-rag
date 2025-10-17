@@ -135,15 +135,25 @@ def generate_answer(query: str, context_chunks: List[dict], openai_api_key: str 
     
     # Simple template-based answer (no LLM required)
     if not openai_api_key:
-        # Create a concise summary from the chunks
-        key_points = []
+        # Create a more natural summary from the chunks
+        key_insights = []
         for i, chunk in enumerate(context_chunks[:3]):  # Use top 3 chunks
-            text = chunk['text'][:200] + "..." if len(chunk['text']) > 200 else chunk['text']
-            key_points.append(f"[{i+1}] {text}")
+            text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
+            # Extract the main point from the chunk
+            sentences = text.split('.')
+            if len(sentences) > 1:
+                main_point = sentences[0].strip()
+                if len(main_point) > 20:  # Only use substantial sentences
+                    key_insights.append(f"• {main_point} [{i+1}]")
         
-        answer = f"""Based on Paul Graham's essays about "{query}":
+        if key_insights:
+            answer = f"""Based on Paul Graham's essays about "{query}":
 
-{chr(10).join(key_points)}
+{chr(10).join(key_insights)}
+
+These insights come from Paul Graham's writings. Click the numbered references to read the full essays."""
+        else:
+            answer = f"""I found some relevant content about "{query}" in Paul Graham's essays, but the excerpts are quite brief. 
 
 **Sources:** {', '.join([f'[{s["number"]}]({s["url"]})' for s in sources[:3]])}"""
         
@@ -151,7 +161,7 @@ def generate_answer(query: str, context_chunks: List[dict], openai_api_key: str 
     
     # Use OpenAI API for better answers
     try:
-        prompt = f"""You are an AI assistant helping users understand Paul Graham's ideas. Based on the following excerpts from his essays, provide a concise, helpful answer to the user's question.
+        prompt = f"""You are an AI assistant helping users understand Paul Graham's ideas. Based on the following excerpts from his essays, provide a natural, conversational answer to the user's question.
 
 User Question: {query}
 
@@ -159,11 +169,12 @@ Relevant Excerpts:
 {context_text}
 
 Instructions:
-- Provide a concise 2-3 paragraph answer
-- Use information from the excerpts above
-- Reference sources as [1], [2], [3] when making points
+- Write a natural, conversational answer (2-3 paragraphs)
+- Synthesize the information from the excerpts into coherent insights
+- Reference sources as [1], [2], [3] when making specific points
 - Write in Paul Graham's clear, direct style
-- End with "Sources: [1](url), [2](url), [3](url)" format
+- Make it sound like you're explaining Paul Graham's ideas, not just listing excerpts
+- If the excerpts don't fully answer the question, acknowledge this
 
 Answer:"""
 
@@ -191,27 +202,45 @@ Answer:"""
             answer = result["choices"][0]["message"]["content"].strip()
         else:
             # Fallback to template answer
-            key_points = []
+            key_insights = []
             for i, chunk in enumerate(context_chunks[:3]):
-                text = chunk['text'][:200] + "..." if len(chunk['text']) > 200 else chunk['text']
-                key_points.append(f"[{i+1}] {text}")
+                text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
+                sentences = text.split('.')
+                if len(sentences) > 1:
+                    main_point = sentences[0].strip()
+                    if len(main_point) > 20:
+                        key_insights.append(f"• {main_point} [{i+1}]")
             
-            answer = f"""Based on Paul Graham's essays about "{query}":
+            if key_insights:
+                answer = f"""Based on Paul Graham's essays about "{query}":
 
-{chr(10).join(key_points)}
+{chr(10).join(key_insights)}
+
+These insights come from Paul Graham's writings. Click the numbered references to read the full essays."""
+            else:
+                answer = f"""I found some relevant content about "{query}" in Paul Graham's essays, but the excerpts are quite brief. 
 
 **Sources:** {', '.join([f'[{s["number"]}]({s["url"]})' for s in sources[:3]])}"""
             
     except Exception as e:
         # Fallback to template answer
-        key_points = []
+        key_insights = []
         for i, chunk in enumerate(context_chunks[:3]):
-            text = chunk['text'][:200] + "..." if len(chunk['text']) > 200 else chunk['text']
-            key_points.append(f"[{i+1}] {text}")
+            text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
+            sentences = text.split('.')
+            if len(sentences) > 1:
+                main_point = sentences[0].strip()
+                if len(main_point) > 20:
+                    key_insights.append(f"• {main_point} [{i+1}]")
         
-        answer = f"""Based on Paul Graham's essays about "{query}":
+        if key_insights:
+            answer = f"""Based on Paul Graham's essays about "{query}":
 
-{chr(10).join(key_points)}
+{chr(10).join(key_insights)}
+
+These insights come from Paul Graham's writings. Click the numbered references to read the full essays."""
+        else:
+            answer = f"""I found some relevant content about "{query}" in Paul Graham's essays, but the excerpts are quite brief. 
 
 **Sources:** {', '.join([f'[{s["number"]}]({s["url"]})' for s in sources[:3]])}"""
     

@@ -259,21 +259,6 @@
         </div>
         
         <div class="input-area">
-            <div class="input-wrapper">
-                <div class="input-row">
-                    <label>Cohere API:</label>
-                    <input type="password" id="cohereApiKey" placeholder="sk-... (optional, for better reranking)" value="">
-                </div>
-                <div class="input-row">
-                    <label>OpenAI API:</label>
-                    <input type="password" id="openaiApiKey" placeholder="sk-... (optional, for better answers)" value="">
-                </div>
-                <div class="input-row">
-                    <label>Results:</label>
-                    <input type="number" id="topK" value="5" min="1" max="10" style="width: 80px;">
-                </div>
-            </div>
-            
             <div class="input-container">
                 <textarea id="messageInput" placeholder="Ask a question about Paul Graham's essays..." rows="2"></textarea>
                 <button id="sendButton">Send</button>
@@ -285,9 +270,6 @@
         const messagesContainer = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
-        const cohereApiKey = document.getElementById('cohereApiKey');
-        const openaiApiKey = document.getElementById('openaiApiKey');
-        const topK = document.getElementById('topK');
 
         function addMessage(content, isUser = false, sources = []) {
             const messageDiv = document.createElement('div');
@@ -298,6 +280,15 @@
             // Convert markdown-style links to HTML links
             messageContent = messageContent.replace(/\[(\d+)\]\(([^)]+)\)/g, 
                 '<a href="$2" target="_blank" class="inline-source-link">[$1]</a>');
+            
+            // Convert standalone [1], [2], [3] references to clickable links
+            messageContent = messageContent.replace(/\[(\d+)\](?!\()/g, function(match, num) {
+                const source = sources.find(s => s.number == num);
+                if (source && source.url) {
+                    return `<a href="${source.url}" target="_blank" class="inline-source-link">[${num}]</a>`;
+                }
+                return match;
+            });
             
             if (!isUser && sources.length > 0) {
                 messageContent += `
@@ -356,9 +347,7 @@
                     },
                     body: JSON.stringify({
                         message: message,
-                        cohere_api_key: cohereApiKey.value.trim(),
-                        openai_api_key: openaiApiKey.value.trim(),
-                        top_k: parseInt(topK.value),
+                        top_k: 5,
                         faiss_k: 30
                     })
                 });
