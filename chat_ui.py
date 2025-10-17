@@ -133,35 +133,16 @@ def generate_answer(query: str, context_chunks: List[dict], openai_api_key: str 
     if not openai_api_key:
         openai_api_key = DEFAULT_OPENAI_API_KEY
     
-    # Simple template-based answer (no LLM required)
-    if not openai_api_key:
-        # Create a more natural summary from the chunks
-        key_insights = []
-        for i, chunk in enumerate(context_chunks[:3]):  # Use top 3 chunks
-            text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
-            # Extract the main point from the chunk
-            sentences = text.split('.')
-            if len(sentences) > 1:
-                main_point = sentences[0].strip()
-                if len(main_point) > 20:  # Only use substantial sentences
-                    key_insights.append(f"• {main_point} [{i+1}]")
-        
-        if key_insights:
-            answer = f"""Based on Paul Graham's essays about "{query}":
-
-{chr(10).join(key_insights)}
-
-These insights come from Paul Graham's writings. Click the numbered references to read the full essays."""
-        else:
-            answer = f"""I found some relevant content about "{query}" in Paul Graham's essays, but the excerpts are quite brief. 
-
-**Sources:** {', '.join([f'[{s["number"]}]({s["url"]})' for s in sources[:3]])}"""
-        
-        return answer, sources
+    # Debug: Print API key status
+    print(f"DEBUG: OpenAI API key available: {bool(openai_api_key)}")
+    if openai_api_key:
+        print(f"DEBUG: API key starts with: {openai_api_key[:10]}...")
     
-    # Use OpenAI API for better answers
-    try:
-        prompt = f"""You are an AI assistant helping users understand Paul Graham's ideas. Based on the following excerpts from his essays, provide a natural, conversational answer to the user's question.
+    # Use OpenAI API if key is available, otherwise use template
+    if openai_api_key:
+        # Use OpenAI API for better answers
+        try:
+            prompt = f"""You are an AI assistant helping users understand Paul Graham's ideas. Based on the following excerpts from his essays, provide a natural, conversational answer to the user's question.
 
 User Question: {query}
 
@@ -178,29 +159,51 @@ Instructions:
 
 Answer:"""
 
-        headers = {
-            "Authorization": f"Bearer {openai_api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        payload = {
-            "model": "gpt-3.5-turbo",
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 300,
-            "temperature": 0.7
-        }
-        
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            result = response.json()
-            answer = result["choices"][0]["message"]["content"].strip()
-        else:
+            headers = {
+                "Authorization": f"Bearer {openai_api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": "gpt-3.5-turbo",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 300,
+                "temperature": 0.7
+            }
+            
+            response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                answer = result["choices"][0]["message"]["content"].strip()
+            else:
+                # Fallback to template answer
+                key_insights = []
+                for i, chunk in enumerate(context_chunks[:3]):
+                    text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
+                    sentences = text.split('.')
+                    if len(sentences) > 1:
+                        main_point = sentences[0].strip()
+                        if len(main_point) > 20:
+                            key_insights.append(f"• {main_point} [{i+1}]")
+                
+                if key_insights:
+                    answer = f"""Based on Paul Graham's essays about "{query}":
+
+{chr(10).join(key_insights)}
+
+These insights come from Paul Graham's writings. Click the numbered references to read the full essays."""
+                else:
+                    answer = f"""I found some relevant content about "{query}" in Paul Graham's essays, but the excerpts are quite brief. 
+
+**Sources:** {', '.join([f'[{s["number"]}]({s["url"]})' for s in sources[:3]])}"""
+                
+        except Exception as e:
             # Fallback to template answer
             key_insights = []
             for i, chunk in enumerate(context_chunks[:3]):
@@ -221,16 +224,16 @@ These insights come from Paul Graham's writings. Click the numbered references t
                 answer = f"""I found some relevant content about "{query}" in Paul Graham's essays, but the excerpts are quite brief. 
 
 **Sources:** {', '.join([f'[{s["number"]}]({s["url"]})' for s in sources[:3]])}"""
-            
-    except Exception as e:
-        # Fallback to template answer
+    else:
+        # Template-based answer (no API key)
         key_insights = []
-        for i, chunk in enumerate(context_chunks[:3]):
+        for i, chunk in enumerate(context_chunks[:3]):  # Use top 3 chunks
             text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
+            # Extract the main point from the chunk
             sentences = text.split('.')
             if len(sentences) > 1:
                 main_point = sentences[0].strip()
-                if len(main_point) > 20:
+                if len(main_point) > 20:  # Only use substantial sentences
                     key_insights.append(f"• {main_point} [{i+1}]")
         
         if key_insights:
