@@ -120,7 +120,8 @@ def search_and_rerank(query: str, faiss_k: int = 30, top_k: int = 5, cohere_api_
 def generate_answer(query: str, context_chunks: List[dict], openai_api_key: str = None) -> tuple[str, List[dict]]:
     """Generate an answer using retrieved context chunks."""
     
-    # Prepare context text and sources
+    # Prepare context text and sources (use only top 3 chunks for consistency)
+    context_chunks = context_chunks[:3]  # Limit to top 3 for consistency
     context_text = ""
     sources = []
     
@@ -190,7 +191,7 @@ Answer:"""
             else:
                 # Fallback to template answer
                 key_insights = []
-                for i, chunk in enumerate(context_chunks[:3]):
+                for i, chunk in enumerate(context_chunks):
                     text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
                     sentences = text.split('.')
                     if len(sentences) > 1:
@@ -212,7 +213,7 @@ These insights come from Paul Graham's writings. Click the numbered references t
         except Exception as e:
             # Fallback to template answer
             key_insights = []
-            for i, chunk in enumerate(context_chunks[:3]):
+            for i, chunk in enumerate(context_chunks):
                 text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
                 sentences = text.split('.')
                 if len(sentences) > 1:
@@ -233,7 +234,7 @@ These insights come from Paul Graham's writings. Click the numbered references t
     else:
         # Template-based answer (no API key)
         key_insights = []
-        for i, chunk in enumerate(context_chunks[:3]):  # Use top 3 chunks
+        for i, chunk in enumerate(context_chunks):  # Use the already limited chunks
             text = chunk['text'][:150] + "..." if len(chunk['text']) > 150 else chunk['text']
             # Extract the main point from the chunk
             sentences = text.split('.')
