@@ -159,8 +159,9 @@ Relevant Excerpts:
 Instructions:
 - Write a natural, conversational answer (2-3 paragraphs)
 - Synthesize the information from the excerpts into coherent insights
-- Reference sources as [1], [2], [3] in sequential order when making specific points
+- You have exactly 3 excerpts available, so only reference [1], [2], [3]
 - Use [1] for the first excerpt, [2] for the second, [3] for the third
+- Do NOT reference [4], [5], [6] or any numbers beyond 3
 - Write in Paul Graham's clear, direct style
 - Make it sound like you're explaining Paul Graham's ideas, not just listing excerpts
 - If the excerpts don't fully answer the question, acknowledge this
@@ -194,12 +195,15 @@ Answer:"""
             import re
             referenced_numbers = re.findall(r'\[(\d+)\]', answer)
             if referenced_numbers:
-                # Only keep sources that are referenced in the answer
+                # Only keep sources that are referenced in the answer and are available
                 referenced_sources = []
                 for num in referenced_numbers:
                     num = int(num)
                     if 1 <= num <= len(sources):
                         referenced_sources.append(sources[num-1])
+                    else:
+                        # Remove invalid references from answer
+                        answer = answer.replace(f'[{num}]', '')
                 sources = referenced_sources
             else:
                 # No source references in answer, show no sources
