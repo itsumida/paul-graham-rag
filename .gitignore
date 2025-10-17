@@ -45,8 +45,8 @@ Thumbs.db
 
 # Project specific
 pg_essays_json/
-index_bge/
-chunks.jsonl
+# index_bge/  # Commented out - we want to include the pre-built index
+# chunks.jsonl  # Commented out - we want to include the pre-built chunks
 *.log
 
 # API Keys (if accidentally committed)
